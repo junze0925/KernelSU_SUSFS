@@ -19,6 +19,16 @@ on:
           - SukiSU(40548)
           - ReSukiSU
         default: ReSukiSU
+      kernelsu_commit:
+        description: "指定 KernelSU 提交哈希 (可选，留空则使用默认分支最新)"
+        required: false
+        type: string
+        default: ""
+      susfs_commit:
+        description: "指定 SUSFS 提交哈希 (可选，留空则使用默认分支最新)"
+        required: false
+        type: string
+        default: ""
       version:
         description: "自定义版本名 (可选)"
         required: false
@@ -85,16 +95,6 @@ on:
         required: true
         type: boolean
         default: false
-      ksu_commit_hash:
-        description: "指定 KernelSU 提交哈希 (可选，留空则使用默认分支最新)"
-        required: false
-        type: string
-        default: ""
-      susfs_commit_hash:
-        description: "指定 SUSFS 提交哈希 (可选，留空则使用默认分支最新)"
-        required: false
-        type: string
-        default: ""
   workflow_call:
     inputs:
       kernelsu_variant:
@@ -139,11 +139,11 @@ on:
         required: false
         type: boolean
         default: false
-      ksu_commit_hash:
+      kernelsu_commit:
         required: false
         type: string
         default: ""
-      susfs_commit_hash:
+      susfs_commit:
         required: false
         type: string
         default: ""
@@ -220,8 +220,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces || 'off' }}
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync || false }}
       artifact_upload_mode: ${{ inputs.artifact_upload_mode }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
 
   # 仅在直接触发时运行，从 main.yml 调用时跳过
   get-ksu-manager:

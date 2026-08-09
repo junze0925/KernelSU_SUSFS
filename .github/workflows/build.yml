@@ -80,12 +80,12 @@ on:
         required: false
         type: boolean
         default: false
-      ksu_commit_hash:
+      kernelsu_commit:
         description: "自定义 KernelSU 提交哈希 (可选，留空则使用默认分支最新)"
         required: false
         type: string
         default: ""
-      susfs_commit_hash:
+      susfs_commit:
         description: "自定义 SUSFS 提交哈希 (可选，留空则使用默认分支最新)"
         required: false
         type: string
@@ -288,11 +288,11 @@ jobs:
           fi
 
           # 优先使用手动指定的 SUSFS 提交哈希（覆盖以上所有逻辑）
-          if [ -n "${{ inputs.susfs_commit_hash }}" ]; then
-            echo "使用自定义 SUSFS 提交: ${{ inputs.susfs_commit_hash }}"
+          if [ -n "${{ inputs.susfs_commit }}" ]; then
+            echo "使用自定义 SUSFS 提交: ${{ inputs.susfs_commit }}"
             cd susfs4ksu
-            git fetch --depth=1 origin "${{ inputs.susfs_commit_hash }}" 2>/dev/null || git fetch --unshallow origin 2>/dev/null || true
-            git checkout "${{ inputs.susfs_commit_hash }}"
+            git fetch --depth=1 origin "${{ inputs.susfs_commit }}" 2>/dev/null || git fetch --unshallow origin 2>/dev/null || true
+            git checkout "${{ inputs.susfs_commit }}"
             cd ..
           fi
 
@@ -425,19 +425,19 @@ jobs:
           variant_input="${{ inputs.ksu_variant }}"
 
           # 优先使用手动指定的 KSU 提交哈希
-          if [ -n "${{ inputs.ksu_commit_hash }}" ]; then
-            BRANCH="-s ${{ inputs.ksu_commit_hash }}"
-            echo "使用自定义 KSU 提交: ${{ inputs.ksu_commit_hash }}"
+          if [ -n "${{ inputs.kernelsu_commit }}" ]; then
+            BRANCH="${{ inputs.kernelsu_commit }}"
+            echo "使用自定义 KSU 提交: ${{ inputs.kernelsu_commit }}"
           else
             case "$variant_input" in
               "Official"|"ReSukiSU")
-                BRANCH="-s main"
+                BRANCH="main"
                 ;;
               "SukiSU")
                 if [ "${{ inputs.enable_susfs }}" = "false" ]; then
-                  BRANCH="-s main"
+                  BRANCH="main"
                 else
-                  BRANCH="-s builtin"
+                  BRANCH="builtin"
                 fi
                 ;;
               "Next")
@@ -453,7 +453,7 @@ jobs:
                   echo "未在 $LEGACY_SUKISU_CONFIG 配置 SukiSU 固定提交" >&2
                   exit 1
                 fi
-                BRANCH="-s $SUKISU_FIXED_COMMIT"
+                BRANCH="$SUKISU_FIXED_COMMIT"
                 ;;
             esac
 
@@ -464,7 +464,7 @@ jobs:
               if [ "$CUSTOM_ENABLED" == "true" ] && [ "$variant_input" == "SukiSU" ]; then
                 SUKISU_COMMIT=$(grep "^sukisu=" "$CONFIG_FILE" | cut -d'=' -f2)
                 if [ -n "$SUKISU_COMMIT" ]; then
-                  BRANCH="-s $SUKISU_COMMIT"
+                  BRANCH="$SUKISU_COMMIT"
                   echo "SukiSU 使用自定义提交: $SUKISU_COMMIT"
                 fi
               fi
@@ -480,7 +480,7 @@ jobs:
           case "${{ inputs.ksu_variant }}" in
             "Official")
               echo "添加 KernelSU 官方版..."
-              curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash $BRANCH
+              curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s $BRANCH
 
               cd KernelSU
               KSU_GIT_VERSION=$(git rev-list --count HEAD)
@@ -498,11 +498,11 @@ jobs:
               ;;
             "SukiSU")
               echo "添加 ${{ inputs.ksu_variant }}..."
-              curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+              curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $BRANCH
               ;;
             "ReSukiSU")
               echo "添加 ReSukiSU..."
-              curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
+              curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s $BRANCH
               ;;
             *)
               if [ -z "$LEGACY_SUKISU_CONFIG" ]; then
@@ -510,7 +510,7 @@ jobs:
                 exit 1
               fi
               echo "添加 ${{ inputs.ksu_variant }}..."
-              curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+              curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $BRANCH
               ;;
           esac
 

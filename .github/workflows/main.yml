@@ -46,6 +46,16 @@ on:
         default: ReSukiSU
 
       # ==================== 可选配置 ====================
+      kernelsu_commit:
+        description: "指定 KernelSU 提交哈希 (可选)"
+        type: string
+        default: ""
+        required: false
+      susfs_commit:
+        description: "指定 SUSFS 提交哈希 (可选)"
+        type: string
+        default: ""
+        required: false
       version:
         description: "自定义版本名 (可选)"
         type: string
@@ -101,18 +111,6 @@ on:
         type: boolean
         default: false
 
-      # ==================== 自定义提交哈希 ====================
-      ksu_commit_hash:
-        description: "指定 KernelSU 提交哈希 (可选)"
-        type: string
-        default: ""
-        required: false
-      susfs_commit_hash:
-        description: "指定 SUSFS 提交哈希 (可选)"
-        type: string
-        default: ""
-        required: false
-
       # ==================== 构建版本选择 ====================
       build_a12_5_10:
         description: "Android 12 - 5.10"
@@ -166,8 +164,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces }}
       artifact_upload_mode: "上传全部"
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
       called_from_main: true
 
   # ==================== Android 13 - 5.15 构建 ====================
@@ -188,8 +186,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces }}
       artifact_upload_mode: "上传全部"
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
       called_from_main: true
 
   # ==================== Android 14 - 6.1 构建 ====================
@@ -210,8 +208,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces }}
       artifact_upload_mode: "上传全部"
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
       called_from_main: true
 
   # ==================== Android 15 - 6.6 构建 ====================
@@ -232,8 +230,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces }}
       artifact_upload_mode: "上传全部"
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
       called_from_main: true
 
   # ==================== Android 16 - 6.12 构建 ====================
@@ -254,8 +252,8 @@ jobs:
       droidspaces: ${{ inputs.droidspaces }}
       artifact_upload_mode: "上传全部"
       droidspaces_ntsync: ${{ inputs.droidspaces_ntsync }}
-      ksu_commit_hash: ${{ inputs.ksu_commit_hash || '' }}
-      susfs_commit_hash: ${{ inputs.susfs_commit_hash || '' }}
+      kernelsu_commit: ${{ inputs.kernelsu_commit || '' }}
+      susfs_commit: ${{ inputs.susfs_commit || '' }}
       called_from_main: true
 
   # ==================== 收集补丁冲突文件 ====================
