@@ -257,6 +257,25 @@ jobs:
               HEAD_SHA=$(printf '%s' "$RUNS" | jq -r ".workflow_runs[$INDEX].head_sha")
               HEAD_BRANCH=$(printf '%s' "$RUNS" | jq -r ".workflow_runs[$INDEX].head_branch")
 
+              # 如果指定了 KSU 提交，优先精确匹配 commit hash
+              if [ -n "${{ inputs.kernelsu_commit }}" ]; then
+                if [ "$HEAD_SHA" = "${{ inputs.kernelsu_commit }}" ] || echo "$HEAD_SHA" | grep -q "^${{ inputs.kernelsu_commit }}"; then
+                  ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                    "https://api.github.com/repos/$REPO/actions/runs/$BUILD_ID/artifacts")
+                  CANDIDATE_LIST=$(get_manager_artifacts "$ARTIFACTS")
+                  if [ -n "$CANDIDATE_LIST" ]; then
+                    echo "精确匹配 Manager: 构建 $BUILD_ID (提交: $HEAD_SHA)"
+                    DOWNLOAD_LIST="$CANDIDATE_LIST"
+                    BEST_VERSION="$TARGET_KSU_VERSION"
+                    BEST_BUILD_ID="$BUILD_ID"
+                    BEST_BRANCH="$HEAD_BRANCH"
+                    break 2
+                  else
+                    echo "精确匹配的构建 $BUILD_ID 中未找到 Manager 产物，继续搜索..."
+                  fi
+                fi
+              fi
+
               RUN_KSU_VERSION=$(calculate_run_ksu_version "$HEAD_SHA" || true)
               if ! [[ "$RUN_KSU_VERSION" =~ ^[0-9]+$ ]]; then
                 echo "跳过构建 $BUILD_ID: 无法根据提交 $HEAD_SHA 计算 KSU 版本"
