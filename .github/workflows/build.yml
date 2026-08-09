@@ -428,6 +428,7 @@ jobs:
           if [ -n "${{ inputs.kernelsu_commit }}" ]; then
             BRANCH="${{ inputs.kernelsu_commit }}"
             echo "使用自定义 KSU 提交: ${{ inputs.kernelsu_commit }}"
+            echo "DEEPEN_KSU=1" >> $GITHUB_ENV
           else
             case "$variant_input" in
               "Official"|"ReSukiSU")
@@ -480,17 +481,21 @@ jobs:
           case "${{ inputs.ksu_variant }}" in
             "Official")
               echo "添加 KernelSU 官方版..."
-              curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s $BRANCH
-
-              cd KernelSU
-              KSU_GIT_VERSION=$(git rev-list --count HEAD)
-              KSU_VERSION=$((20000 + KSU_GIT_VERSION))
-              echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-
-              if [ -f "kernel/Kbuild" ]; then
-                sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" kernel/Kbuild
+              if [ -n "${DEEPEN_KSU:-}" ] && [ -n "$BRANCH" ]; then
+                rm -rf KernelSU
+                git clone https://github.com/tiann/KernelSU KernelSU
+                cd KernelSU
+                git checkout "$BRANCH" && echo "[-] Checked out $BRANCH."
+                cd ..
+                KSU_GIT_VERSION=$(git -C KernelSU rev-list --count HEAD)
+                KSU_VERSION=$((20000 + KSU_GIT_VERSION))
+                echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+                if [ -f "KernelSU/kernel/Kbuild" ]; then
+                  sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" KernelSU/kernel/Kbuild
+                fi
+              else
+                curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s $BRANCH
               fi
-              cd ..
               ;;
             "Next")
               echo "添加 KernelSU-Next..."
@@ -498,11 +503,41 @@ jobs:
               ;;
             "SukiSU")
               echo "添加 ${{ inputs.ksu_variant }}..."
-              curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $BRANCH
+              if [ -n "${DEEPEN_KSU:-}" ] && [ -n "$BRANCH" ]; then
+                # 绕过 setup.sh 浅克隆问题：手动克隆完整仓库 + checkout 指定 commit
+                rm -rf KernelSU
+                git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra KernelSU
+                cd KernelSU
+                git checkout "$BRANCH" && echo "[-] Checked out $BRANCH."
+                cd ..
+                # 更新 KSU 版本号
+                KSU_GIT_VERSION=$(git -C KernelSU rev-list --count HEAD)
+                KSU_VERSION=$((20000 + KSU_GIT_VERSION))
+                echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+                if [ -f "KernelSU/kernel/Kbuild" ]; then
+                  sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" KernelSU/kernel/Kbuild
+                fi
+              else
+                curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $BRANCH
+              fi
               ;;
             "ReSukiSU")
               echo "添加 ReSukiSU..."
-              curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s $BRANCH
+              if [ -n "${DEEPEN_KSU:-}" ] && [ -n "$BRANCH" ]; then
+                rm -rf KernelSU
+                git clone https://github.com/ReSukiSU/ReSukiSU KernelSU
+                cd KernelSU
+                git checkout "$BRANCH" && echo "[-] Checked out $BRANCH."
+                cd ..
+                KSU_GIT_VERSION=$(git -C KernelSU rev-list --count HEAD)
+                KSU_VERSION=$((20000 + KSU_GIT_VERSION))
+                echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+                if [ -f "KernelSU/kernel/Kbuild" ]; then
+                  sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" KernelSU/kernel/Kbuild
+                fi
+              else
+                curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s $BRANCH
+              fi
               ;;
             *)
               if [ -z "$LEGACY_SUKISU_CONFIG" ]; then
