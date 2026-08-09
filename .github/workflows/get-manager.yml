@@ -242,10 +242,10 @@ jobs:
             RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?branch=$BRANCH&status=success&per_page=100"
           fi
 
-          # 如果指定了 KSU 提交，优先通过 head_sha API 直接精确查找
-          if [ -n "${{ inputs.kernelsu_commit }}" ]; then
-            # 解析为完整提交哈希（支持短哈希输入）
-            RESOLVED_COMMIT=$(git -C KernelSU rev-parse HEAD 2>/dev/null || echo "${{ inputs.kernelsu_commit }}")
+          # 用实际构建的 HEAD 提交通过 head_sha API 精确查找对应的 Manager
+          # 不管用户是否指定了 kernelsu_commit，克隆出来的 HEAD 就是实际构建所用的提交
+          RESOLVED_COMMIT=$(git -C KernelSU rev-parse HEAD 2>/dev/null || true)
+          if [ -n "${RESOLVED_COMMIT:-}" ]; then
             echo "使用 head_sha API 精确查找提交 ${RESOLVED_COMMIT} 的 Manager 构建..."
             EXACT_RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "${RUNS_URL}&head_sha=${RESOLVED_COMMIT}")
@@ -269,6 +269,8 @@ jobs:
             else
               echo "未找到 commit ${RESOLVED_COMMIT} 对应的 CI 构建，回退到版本号搜索..."
             fi
+          else
+            echo "无法获取 KernelSU HEAD 提交，回退到版本号搜索..."
           fi
 
           if [ -z "${DOWNLOAD_LIST:-}" ]; then
