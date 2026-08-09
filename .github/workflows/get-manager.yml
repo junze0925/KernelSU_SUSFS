@@ -242,8 +242,38 @@ jobs:
             RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?branch=$BRANCH&status=success&per_page=100"
           fi
 
-          echo "开始查找不高于 KSU $TARGET_KSU_VERSION 的 Manager 产物..."
-          for PAGE in $(seq 1 30); do
+          # 如果指定了 KSU 提交，优先通过 head_sha API 直接精确查找
+          if [ -n "${{ inputs.kernelsu_commit }}" ]; then
+            # 解析为完整提交哈希（支持短哈希输入）
+            RESOLVED_COMMIT=$(git -C KernelSU rev-parse HEAD 2>/dev/null || echo "${{ inputs.kernelsu_commit }}")
+            echo "使用 head_sha API 精确查找提交 ${RESOLVED_COMMIT} 的 Manager 构建..."
+            EXACT_RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "${RUNS_URL}&head_sha=${RESOLVED_COMMIT}")
+            EXACT_COUNT=$(printf '%s' "$EXACT_RUNS" | jq -r '.workflow_runs | length // 0')
+            if [ "${EXACT_COUNT:-0}" -gt 0 ]; then
+              EXACT_BUILD_ID=$(printf '%s' "$EXACT_RUNS" | jq -r '.workflow_runs[0].id')
+              EXACT_HEAD_BRANCH=$(printf '%s' "$EXACT_RUNS" | jq -r '.workflow_runs[0].head_branch')
+              echo "找到候选构建: #${EXACT_BUILD_ID} (分支: ${EXACT_HEAD_BRANCH})，检查 Manager 产物..."
+              ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/$REPO/actions/runs/$EXACT_BUILD_ID/artifacts")
+              DOWNLOAD_LIST=$(get_manager_artifacts "$ARTIFACTS")
+              if [ -n "$DOWNLOAD_LIST" ]; then
+                echo "::notice:: 精确匹配 Manager: 构建 #${EXACT_BUILD_ID} (${EXACT_HEAD_BRANCH}), commit ${RESOLVED_COMMIT}"
+                BEST_VERSION="$TARGET_KSU_VERSION"
+                BEST_BUILD_ID="$EXACT_BUILD_ID"
+                BEST_BRANCH="$EXACT_HEAD_BRANCH"
+              else
+                echo "::warning:: 精确匹配的构建 #${EXACT_BUILD_ID} 中未找到 Manager 产物，回退到版本搜索"
+                DOWNLOAD_LIST=""
+              fi
+            else
+              echo "未找到 commit ${RESOLVED_COMMIT} 对应的 CI 构建，回退到版本号搜索..."
+            fi
+          fi
+
+          if [ -z "${DOWNLOAD_LIST:-}" ]; then
+            echo "开始查找不高于 KSU $TARGET_KSU_VERSION 的 Manager 产物..."
+            for PAGE in $(seq 1 30); do
             echo "--------------------------------------------------"
             echo "正在检查第 ${PAGE} 页历史构建..."
             RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$RUNS_URL&page=$PAGE")
@@ -256,25 +286,6 @@ jobs:
               BUILD_ID=$(printf '%s' "$RUNS" | jq -r ".workflow_runs[$INDEX].id")
               HEAD_SHA=$(printf '%s' "$RUNS" | jq -r ".workflow_runs[$INDEX].head_sha")
               HEAD_BRANCH=$(printf '%s' "$RUNS" | jq -r ".workflow_runs[$INDEX].head_branch")
-
-              # 如果指定了 KSU 提交，优先精确匹配 commit hash
-              if [ -n "${{ inputs.kernelsu_commit }}" ]; then
-                if [ "$HEAD_SHA" = "${{ inputs.kernelsu_commit }}" ] || echo "$HEAD_SHA" | grep -q "^${{ inputs.kernelsu_commit }}"; then
-                  ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                    "https://api.github.com/repos/$REPO/actions/runs/$BUILD_ID/artifacts")
-                  CANDIDATE_LIST=$(get_manager_artifacts "$ARTIFACTS")
-                  if [ -n "$CANDIDATE_LIST" ]; then
-                    echo "精确匹配 Manager: 构建 $BUILD_ID (提交: $HEAD_SHA)"
-                    DOWNLOAD_LIST="$CANDIDATE_LIST"
-                    BEST_VERSION="$TARGET_KSU_VERSION"
-                    BEST_BUILD_ID="$BUILD_ID"
-                    BEST_BRANCH="$HEAD_BRANCH"
-                    break 2
-                  else
-                    echo "精确匹配的构建 $BUILD_ID 中未找到 Manager 产物，继续搜索..."
-                  fi
-                fi
-              fi
 
               RUN_KSU_VERSION=$(calculate_run_ksu_version "$HEAD_SHA" || true)
               if ! [[ "$RUN_KSU_VERSION" =~ ^[0-9]+$ ]]; then
@@ -306,7 +317,8 @@ jobs:
                 break 2
               fi
             done
-          done
+            done
+          fi
 
           if [ -z "$DOWNLOAD_LIST" ]; then
             echo "未获取到 KSU 版本小于等于 $TARGET_KSU_VERSION 的 Manager artifact 下载地址列表。"
