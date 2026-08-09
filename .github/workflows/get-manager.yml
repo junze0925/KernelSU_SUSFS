@@ -237,13 +237,13 @@ jobs:
           BEST_VERSION=0
           BEST_BUILD_ID=""
           BEST_BRANCH=""
-          RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?status=success&per_page=30"
+          RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?status=success&per_page=100"
           if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?branch=$BRANCH&status=success&per_page=30"
+            RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?branch=$BRANCH&status=success&per_page=100"
           fi
 
           echo "开始查找不高于 KSU $TARGET_KSU_VERSION 的 Manager 产物..."
-          for PAGE in $(seq 1 10); do
+          for PAGE in $(seq 1 30); do
             echo "--------------------------------------------------"
             echo "正在检查第 ${PAGE} 页历史构建..."
             RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$RUNS_URL&page=$PAGE")
